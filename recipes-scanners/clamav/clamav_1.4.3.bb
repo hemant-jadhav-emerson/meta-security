@@ -20,6 +20,7 @@ SRC_URI = "git://github.com/Cisco-Talos/clamav;branch=rel/1.4;protocol=https \
            file://freshclam.conf \
            file://volatiles.03_clamav \
            file://tmpfiles.clamav \
+           file://clamav-scan \
            "
 
 # ClamAV version 1.4.3
@@ -107,6 +108,9 @@ do_install:append() {
     install -m 644 ${WORKDIR}/clamd.conf ${D}${sysconfdir}
     install -m 644 ${WORKDIR}/freshclam.conf ${D}${sysconfdir}
     install -m 0644 ${WORKDIR}/volatiles.03_clamav  ${D}${sysconfdir}/default/volatiles/03_clamav
+    
+    # Install clamav-scan wrapper script
+    install -m 0755 ${WORKDIR}/clamav-scan ${D}${bindir}/clamav-scan
 
     if [ -d ${D}${prefix}/etc ]; then
         cp -r ${D}${prefix}/etc/* ${D}${sysconfdir}/ 2>/dev/null || true
@@ -139,8 +143,6 @@ pkg_postinst:${PN} () {
     if [ -z "$D" ]; then
         if command -v systemd-tmpfiles >/dev/null; then
             systemd-tmpfiles --create ${sysconfdir}/tmpfiles.d/clamav.conf
-        elif [ -e ${sysconfdir}/init.d/populate-volatile.sh ]; then
-            ${sysconfdir}/init.d/populate-volatile.sh update
         fi
     fi
 }
