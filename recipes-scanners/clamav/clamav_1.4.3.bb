@@ -65,6 +65,7 @@ EXTRA_OECMAKE = "-DCMAKE_BUILD_TYPE=Release -DOPTIMIZE=ON -DENABLE_JSON_SHARED=O
                  -DCMAKE_INSTALL_SYSCONFDIR=${sysconfdir} \
                  -DCMAKE_INSTALL_FULL_SYSCONFDIR=${sysconfdir} \
                  -DSYSCONFDIR=${sysconfdir} \
+                 -DAPP_CONFIG_DIRECTORY=${sysconfdir} \
                  -DHAVE_SIGNED_RIGHT_SHIFT=1 \
                  -DHAVE_UNAME_SYSCALL=1 \
                  -DHAVE_FD_PASSING=1 \
@@ -144,10 +145,27 @@ pkg_postinst:${PN} () {
     fi
 }
 
+pkg_postinst:${PN}-freshclam () {
+    if [ -z "$D" ]; then
+        # Create and set permissions for clamav directories
+        mkdir -p ${localstatedir}/lib/clamav
+        mkdir -p ${localstatedir}/log/clamav
+        chown -R ${CLAMAV_USER}:${CLAMAV_GROUP} ${localstatedir}/lib/clamav
+        chown -R ${CLAMAV_USER}:${CLAMAV_GROUP} ${localstatedir}/log/clamav
+        chmod 755 ${localstatedir}/lib/clamav
+        chmod 755 ${localstatedir}/log/clamav
+        
+        # Create empty log file with correct ownership
+        touch ${localstatedir}/log/clamav/freshclam.log
+        chown ${CLAMAV_USER}:${CLAMAV_GROUP} ${localstatedir}/log/clamav/freshclam.log
+        chmod 644 ${localstatedir}/log/clamav/freshclam.log
+    fi
+}
+
 PACKAGES += "${PN}-daemon ${PN}-clamdscan ${PN}-freshclam ${PN}-libclamav ${PN}-libclammspack"
 
 FILES:${PN} = "${bindir}/clambc ${bindir}/clamscan ${bindir}/clamsubmit ${sbindir}/clamonacc \
-               ${bindir}/*sigtool ${mandir}/man1/clambc* ${mandir}/man1/clamscan* \
+               ${bindir}/*sigtool ${bindir}/clamav-scan ${mandir}/man1/clambc* ${mandir}/man1/clamscan* \
                ${mandir}/man1/sigtool* ${mandir}/man1/clambsubmit* \
                ${docdir}/clamav/*"
 
@@ -215,7 +233,7 @@ USERADD_PACKAGES = "${PN}-freshclam"
 GROUPADD_PARAM:${PN}-freshclam = "--system ${CLAMAV_GROUP}"
 USERADD_PARAM:${PN}-freshclam = "--system -g ${CLAMAV_GROUP} --home-dir \
                                  ${localstatedir}/lib/${BPN} \
-                                 --no-create-home --shell /sbin/nologin ${CLAMAV_USER}"
+                                 --create-home --shell /sbin/nologin ${CLAMAV_USER}"
 
 INSANE_SKIP:${PN}-libclamav += "dev-so"
 INSANE_SKIP:${PN}-libclammspack += "dev-so"
